@@ -1,47 +1,54 @@
 import 'dotenv/config';
-import { GoogleGenAI } from '@google/genai';
+import OpenAI from 'openai';
+
 import { scrapeBrands } from './scraper';
 import { AutomobileModel } from '../../models/automobile.model';
-import { CronJob } from 'cron';
-import db from '../../db';
-import { CarListing } from './types';
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+import db from '../../db';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-// TODO: make cron / add data removal
 const arabamcomScraperJob = async () => {
   await db();
   console.log('Connected to MongoDB, starting scraper...');
   const listings = await scrapeBrands();
 
   console.log(JSON.stringify(listings, null, 2));
+  const batchSize = 1000;
+  const processedDocuments = [];
 
-  for (let i = 0; i < listings.length; i += 100) {
-    const batch = listings.slice(i, i + 100);
+  for (let i = 0; i < listings.length; i++) {
+    const listing = listings[i];
     try {
-      const embeddings = await ai.models.embedContent({
-        model: 'gemini-embedding-001',
-        contents: batch.map(
-          (listing: CarListing) =>
-            `${listing.name} - ${listing.title} - ${listing.brand} - ${listing.model} - ${listing.year} - ${listing.price} - ${listing.description} - ${JSON.stringify(listing.damageInfo)} - ${listing.tramerAmount} - ${JSON.stringify(listing.specs)}`
-        ),
+      const embedding = await openai.embeddings.create({
+        model: 'text-embedding-3-large',
+        input: `${listing.name} - ${listing.title} - ${listing.brand} - ${listing.model} - ${listing.year} - ${listing.price} - ${listing.description} - ${JSON.stringify(listing.damageInfo)} - ${listing.tramerAmount} - ${JSON.stringify(listing.specs)}`,
+        encoding_format: 'float',
       });
 
-      await AutomobileModel.insertMany(
-        batch.map((listing: CarListing, index: number) => ({
-          ...listing,
-          embedding: embeddings.embeddings?.[index]?.values,
-        }))
-      );
+      processedDocuments.push({
+        ...listing,
+        embedding: embedding.data[0].embedding,
+      });
+
       console.log(
-        `Inserted batch ${Math.floor(i / 100) + 1} of ${Math.ceil(listings.length / 100)}`
+        `Prepared embedding for listing ${i + 1} of ${listings.length}`
       );
+
+      if (
+        processedDocuments.length === batchSize ||
+        i === listings.length - 1
+      ) {
+        await AutomobileModel.insertMany(processedDocuments);
+        console.log(`Inserted batch of ${processedDocuments.length} documents`);
+        processedDocuments.length = 0;
+      }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (error) {
-      console.error(`Error inserting batch ${Math.floor(i / 100) + 1}:`, error);
+      console.error(`Error processing listing ${i + 1}:`, error);
     }
   }
 

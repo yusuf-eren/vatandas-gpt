@@ -4,6 +4,7 @@ import { aisdk } from '@openai/agents-extensions';
 import { propertyAgent } from './home-agent/agent';
 import { trendyolRestaurantAgent } from './restaurant-agent/agent';
 import { newsAgent } from './news-agent/agent';
+import { carAgent } from './car-agent/agent';
 
 export const greetingAgent = new Agent({
   model: aisdk(google('gemini-2.5-flash')),
@@ -59,5 +60,5 @@ Hangi konuda yardıma ihtiyacınız var?"
 
 Remember: Your success is measured by how quickly you route users to the right agent. Minimize talking, maximize routing efficiency.
 `,
-  handoffs: [propertyAgent, trendyolRestaurantAgent, newsAgent],
+  handoffs: [propertyAgent, trendyolRestaurantAgent, newsAgent, carAgent],
 });
