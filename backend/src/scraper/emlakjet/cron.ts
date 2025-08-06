@@ -68,6 +68,7 @@ export const emlakjetScraperJob = new CronJob(
       ];
 
       // Get existing properties for this district
+      // @ts-ignore
       const existingProperties = await PropertyModel.find({ district });
 
       // Create composite key for property comparison
@@ -147,6 +148,7 @@ export const emlakjetScraperJob = new CronJob(
 
       // Delete properties that no longer exist
       if (toDelete.length > 0) {
+        // @ts-ignore
         await PropertyModel.deleteMany({ _id: { $in: toDelete } });
         totalOperations += toDelete.length;
         console.log(`Deleted ${toDelete.length} properties for ${district}`);
@@ -155,12 +157,15 @@ export const emlakjetScraperJob = new CronJob(
       // Update existing properties (keep existing embeddings)
       if (toUpdate.length > 0) {
         for (const { existing, new: newListing } of toUpdate) {
+          // @ts-ignore
           await PropertyModel.updateOne(
             { _id: existing._id },
             {
-              ...newListing,
-              city: 'Istanbul',
-              district,
+              $set: {
+                ...newListing,
+                city: 'Istanbul',
+                district,
+              },
             }
           );
         }

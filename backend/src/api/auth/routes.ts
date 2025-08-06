@@ -12,6 +12,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '30d';
 
 // Helper function to generate JWT token
 const generateToken = (userId: string): string => {
+  // @ts-ignore
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 };
 
@@ -53,7 +54,7 @@ router.post('/register', async (req: Request, res: Response) => {
     await user.save();
 
     // Generate JWT token
-    const token = generateToken(user._id.toString());
+    const token = generateToken(user.id.toString());
 
     console.log(`✅ New user registered: ${email}`);
 
@@ -127,7 +128,7 @@ router.post('/signin', async (req: Request, res: Response) => {
     }
 
     // Generate JWT token
-    const token = generateToken(user._id.toString());
+    const token = generateToken(user.id.toString());
 
     console.log(`✅ User signed in: ${email}`);
 

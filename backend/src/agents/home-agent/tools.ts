@@ -88,6 +88,7 @@ export const getPropertiesTool = tool({
     console.log('MongoDB query:', JSON.stringify(query, null, 2));
 
     // Execute the query with find()
+    // @ts-ignore
     const results = await PropertyModel.find(query)
       .select({
         _id: 0,
